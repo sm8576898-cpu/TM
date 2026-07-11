@@ -1,0 +1,16 @@
+{
+  "name": "Tuition Manager PWA",
+  "short_name": "Tuition PWA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111526",
+  "theme_color": "#10efbb",
+  "description": "Smart cloud software to manage students, fees, and attendance.",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
