@@ -452,3 +452,10 @@ window.updateFeeData = async (studentId, fieldKey, value) => {
 };
 window.triggerDeleteStudent = async (key) => { if(confirm("ডিলিট করবেন?")) await remove(ref(db, `tuition_users/${currentUserUID}/students/${key}`)); };
 window.deletePdf = async (key) => { if(confirm("PDF ডিলিট করবেন?")) await remove(ref(db, `tuition_users/${currentUserUID}/pdfs/${key}`)); };
+
+// স্ক্রিন সাইজ পরিবর্তন হলে বা ফোন রোটেট করলে চার্ট অটো-রিসাইজ হবে
+window.addEventListener('resize', () => {
+    if (allStudentsRawData && document.getElementById('tab-home').classList.contains('active')) {
+        try { applyChartFilters(); } catch(e) {}
+    }
+});
