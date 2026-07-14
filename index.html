@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Tuition Manager</title>
     
     <link rel="manifest" href="manifest.json">
@@ -83,6 +83,47 @@
             #print-report-section { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; margin: 0; padding: 0;}
             .bottom-nav, .top-header, .btn-print, .filter-select { display: none !important; }
             body { background: white; padding: 0; margin: 0; }
+        }
+
+        /* --- RESPONSIVE & ANTI-ZOOM FIXES --- */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        @media screen and (max-width: 768px) {
+            input, select, textarea, button {
+                font-size: 16px !important;
+            }
+            .filter-select {
+                font-size: 14px !important;
+            }
+            .top-header {
+                padding: 8px 10px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .header-title h1 {
+                font-size: 1.1rem;
+            }
+            .tab-content {
+                padding: 10px;
+            }
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+            #tab-home > div:first-child {
+                grid-template-columns: 1fr !important;
+            }
+            .fees-table input, .fees-table select {
+                padding: 8px 4px;
+                font-size: 15px !important;
+            }
+        }
+        .fees-table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            display: block;
         }
     </style>
 </head>
