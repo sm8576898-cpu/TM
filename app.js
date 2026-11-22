@@ -1,6 +1,8 @@
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) { registration.unregister(); }
+        for (let registration of registrations) {
+            registration.unregister();
+        }
     });
 }
 
@@ -39,8 +41,8 @@ if (globalYearSelect) globalYearSelect.value = today.getFullYear();
 if (attDateInput) attDateInput.value = toISODate(today);
 
 const getMonthKey = () => {
-    let m = globalMonthSelect ? globalMonthSelect.value : monthNames[today.getMonth()];
-    let y = globalYearSelect ? globalYearSelect.value : today.getFullYear();
+    const m = globalMonthSelect ? globalMonthSelect.value : monthNames[today.getMonth()];
+    const y = globalYearSelect ? globalYearSelect.value : today.getFullYear();
     return `${m}-${y}`;
 };
 
@@ -92,12 +94,9 @@ if (attDateInput) {
 }
 
 function escapeHtml(str) {
-    return String(str || '')
-        .replace(/&/g, '&')
-        .replace(/</g, '<')
-        .replace(/>/g, '>')
-        .replace(/"/g, '"')
-        .replace(/'/g, ''');
+    const div = document.createElement('div');
+    div.textContent = String(str || '');
+    return div.innerHTML.replace(/"/g, '"');
 }
 
 function parseDateList(rawStr) {
@@ -122,18 +121,20 @@ function getSelectedDayNum() {
     return today.getDate();
 }
 
-window.toggleLoginPassword = function() {
-    const passInput = document.getElementById('user-pass');
-    const eyeIcon = document.getElementById('toggle-pass-eye');
-    if (!passInput || !eyeIcon) return;
-    if (passInput.type === 'password') {
-        passInput.type = 'text';
-        eyeIcon.innerText = '🙈';
-    } else {
-        passInput.type = 'password';
-        eyeIcon.innerText = '👁️';
-    }
-};
+const togglePassEye = document.getElementById('toggle-pass-eye');
+if (togglePassEye) {
+    togglePassEye.addEventListener('click', () => {
+        const passInput = document.getElementById('user-pass');
+        if (!passInput) return;
+        if (passInput.type === 'password') {
+            passInput.type = 'text';
+            togglePassEye.innerText = '🙈';
+        } else {
+            passInput.type = 'password';
+            togglePassEye.innerText = '👁️';
+        }
+    });
+}
 
 const classFilterEl = document.getElementById('chart-class-filter');
 const sortFilterEl = document.getElementById('chart-sort-filter');
@@ -143,11 +144,11 @@ if (sortFilterEl) sortFilterEl.addEventListener('change', () => { try { applyCha
 window.switchTab = function(tabId, navElement) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    
+
     const tabToActivate = document.getElementById(tabId);
     if (tabToActivate) tabToActivate.classList.add('active');
     if (navElement) navElement.classList.add('active');
-    
+
     if (tabId === 'tab-home' && allStudentsRawData) {
         try { applyChartFilters(); } catch (e) {}
     }
@@ -182,18 +183,22 @@ onAuthStateChanged(auth, (user) => {
 const signupBtn = document.getElementById('signup-btn');
 if (signupBtn) {
     signupBtn.addEventListener('click', async () => {
-        const email = document.getElementById('user-email').value;
+        const email = document.getElementById('user-email').value.trim();
         const pass = document.getElementById('user-pass').value;
-        if (email && pass) await createUserWithEmailAndPassword(auth, email, pass).catch(e => alert(e.message));
+        if (email && pass) {
+            await createUserWithEmailAndPassword(auth, email, pass).catch(e => alert(e.message));
+        }
     });
 }
 
 const loginBtn = document.getElementById('login-btn');
 if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
-        const email = document.getElementById('user-email').value;
+        const email = document.getElementById('user-email').value.trim();
         const pass = document.getElementById('user-pass').value;
-        if (email && pass) await signInWithEmailAndPassword(auth, email, pass).catch(() => alert("ভুল ইমেইল বা পাসওয়ার্ড!"));
+        if (email && pass) {
+            await signInWithEmailAndPassword(auth, email, pass).catch(() => alert("ভুল ইমেইল বা পাসওয়ার্ড!"));
+        }
     });
 }
 
@@ -218,8 +223,8 @@ function syncSettings(uid) {
     onValue(ref(db, `tuition_users/${uid}/settings`), (snapshot) => {
         const data = snapshot.val() || {};
         currentInstName = data.instituteName || "জ্ঞানকুঠির";
-        let teachName = data.teacherName || "Sayan Sir";
-        
+        const teachName = data.teacherName || "Sayan Sir";
+
         const headerInst = document.getElementById('header-inst-name');
         const displayTeacher = document.getElementById('display-teacher-name');
         const reportInst = document.getElementById('report-institute-name');
@@ -234,15 +239,25 @@ function syncSettings(uid) {
     });
 }
 
-let pdfBase64 = ""; let pdfFileName = ""; let pdfFileSize = "";
+let pdfBase64 = "";
+let pdfFileName = "";
+let pdfFileSize = "";
+
 const pdfFileEl = document.getElementById('pdf-file');
 if (pdfFileEl) {
     pdfFileEl.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 90000) return alert("ফাইলটি ৬০-৮০ KB এর চেয়ে বড়!"), e.target.value = "";
-            pdfFileName = file.name; pdfFileSize = (file.size / 1024).toFixed(1) + " KB";
-            const reader = new FileReader(); reader.onload = (event) => pdfBase64 = event.target.result; reader.readAsDataURL(file);
+            if (file.size > 90000) {
+                alert("ফাইলটি ৬০-৮০ KB এর চেয়ে বড়!");
+                e.target.value = "";
+                return;
+            }
+            pdfFileName = file.name;
+            pdfFileSize = (file.size / 1024).toFixed(1) + " KB";
+            const reader = new FileReader();
+            reader.onload = (event) => { pdfBase64 = event.target.result; };
+            reader.readAsDataURL(file);
         }
     });
 }
@@ -252,9 +267,16 @@ if (uploadPdfBtn) {
     uploadPdfBtn.addEventListener('click', async () => {
         const title = document.getElementById('pdf-title').value;
         if (title && pdfBase64 && currentUserUID) {
-            await set(push(ref(db, `tuition_users/${currentUserUID}/pdfs`)), { title, fileName: pdfFileName, size: pdfFileSize, fileData: pdfBase64 });
+            await set(push(ref(db, `tuition_users/${currentUserUID}/pdfs`)), {
+                title,
+                fileName: pdfFileName,
+                size: pdfFileSize,
+                fileData: pdfBase64
+            });
             alert("PDF আপলোড সফল!");
-            document.getElementById('pdf-title').value = ""; document.getElementById('pdf-file').value = ""; pdfBase64 = "";
+            document.getElementById('pdf-title').value = "";
+            document.getElementById('pdf-file').value = "";
+            pdfBase64 = "";
         }
     });
 }
@@ -263,26 +285,26 @@ function initAppDataListeners(uid) {
     syncSettings(uid);
     onValue(ref(db, `tuition_users/${uid}/students`), (snapshot) => {
         allStudentsRawData = snapshot.val();
-        if (allStudentsRawData) {
-            renderDashboard(allStudentsRawData);
-        } else {
-            renderDashboard({});
-        }
+        renderDashboard(allStudentsRawData || {});
     });
-    
+
     onValue(ref(db, `tuition_users/${uid}/pdfs`), (snapshot) => {
         const homePdfList = document.getElementById('home-pdf-list');
         const adminPdfList = document.getElementById('admin-pdf-list');
-        
+
         if (homePdfList) homePdfList.innerHTML = "";
         if (adminPdfList) adminPdfList.innerHTML = "";
-        
+
         const data = snapshot.val();
         if (data) {
             Object.keys(data).forEach(key => {
                 const pdf = data[key];
-                if (homePdfList) homePdfList.innerHTML += `<a href="${pdf.fileData}" download="${escapeHtml(pdf.fileName)}" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 15px; border-radius: 6px; margin-top: 10px; text-decoration: none; color: #3b82f6; font-size: 0.85rem; border: 1px solid #e2e8f0; font-weight: bold;"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;"><i class="far fa-file-pdf" style="color: #cbd5e1; margin-right: 8px;"></i> [ ${escapeHtml(pdf.title)} ] ${escapeHtml(pdf.fileName)} <span style="color:#64748b; font-size:0.75rem;">(${escapeHtml(pdf.size)})</span></span><i class="fas fa-arrow-down" style="color: #3b82f6; background: #eff6ff; padding: 5px; border-radius: 4px;"></i></a>`;
-                if (adminPdfList) adminPdfList.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding: 12px 0; font-size: 0.85rem; color: #333;"><strong style="width: 20%;">${escapeHtml(pdf.title)}</strong><span style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 10px;">${escapeHtml(pdf.fileName)}</span><button style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;" onclick="deletePdf('${key}')">ডিলিট</button></div>`;
+                if (homePdfList) {
+                    homePdfList.innerHTML += `<a href="${pdf.fileData}" download="${escapeHtml(pdf.fileName)}" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 15px; border-radius: 6px; margin-top: 10px; text-decoration: none; color: #3b82f6; font-size: 0.85rem; border: 1px solid #e2e8f0; font-weight: bold;"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;"><i class="far fa-file-pdf" style="color: #cbd5e1; margin-right: 8px;"></i> [ ${escapeHtml(pdf.title)} ] ${escapeHtml(pdf.fileName)} <span style="color:#64748b; font-size:0.75rem;">(${escapeHtml(pdf.size)})</span></span><i class="fas fa-arrow-down" style="color: #3b82f6; background: #eff6ff; padding: 5px; border-radius: 4px;"></i></a>`;
+                }
+                if (adminPdfList) {
+                    adminPdfList.innerHTML += `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding: 12px 0; font-size: 0.85rem; color: #333;"><strong style="width: 20%;">${escapeHtml(pdf.title)}</strong><span style="width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 10px;">${escapeHtml(pdf.fileName)}</span><button style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;" onclick="deletePdf('${key}')">ডিলিট</button></div>`;
+                }
             });
         }
     });
@@ -291,10 +313,9 @@ function initAppDataListeners(uid) {
 window.searchAttendanceList = function() {
     const searchEl = document.getElementById('search-attendance');
     if (!searchEl) return;
-    let filter = searchEl.value.toLowerCase();
-    let rows = document.querySelectorAll('.att-row');
-    rows.forEach(row => {
-        let info = row.getAttribute('data-stuinfo') || '';
+    const filter = searchEl.value.toLowerCase();
+    document.querySelectorAll('.att-row').forEach(row => {
+        const info = row.getAttribute('data-stuinfo') || '';
         row.style.display = info.includes(filter) ? 'flex' : 'none';
     });
 };
@@ -302,10 +323,9 @@ window.searchAttendanceList = function() {
 window.searchFeeTable = function() {
     const searchEl = document.getElementById('search-fee');
     if (!searchEl) return;
-    let filter = searchEl.value.toLowerCase();
-    let rows = document.querySelectorAll('.fee-table-row');
-    rows.forEach(row => {
-        let name = row.getAttribute('data-stuname') || '';
+    const filter = searchEl.value.toLowerCase();
+    document.querySelectorAll('.fee-table-row').forEach(row => {
+        const name = row.getAttribute('data-stuname') || '';
         row.style.display = name.includes(filter) ? '' : 'none';
     });
 };
@@ -313,10 +333,9 @@ window.searchFeeTable = function() {
 window.searchProfileTable = function() {
     const searchEl = document.getElementById('search-profile');
     if (!searchEl) return;
-    let filter = searchEl.value.toLowerCase();
-    let rows = document.querySelectorAll('.profile-table-row');
-    rows.forEach(row => {
-        let name = row.getAttribute('data-stuname') || '';
+    const filter = searchEl.value.toLowerCase();
+    document.querySelectorAll('.profile-table-row').forEach(row => {
+        const name = row.getAttribute('data-stuname') || '';
         row.style.display = name.includes(filter) ? 'flex' : 'none';
     });
 };
@@ -328,21 +347,21 @@ function renderDashboard(data) {
     const adminReportList = document.getElementById('admin-report-list');
     const adminProfileManageList = document.getElementById('admin-profile-manage-list');
     const attendanceSummaryList = document.getElementById('attendance-summary-list');
-    
+
     if (studentGrid) studentGrid.innerHTML = "";
     if (adminAttendanceList) adminAttendanceList.innerHTML = "";
     if (adminFeesList) adminFeesList.innerHTML = "";
     if (adminReportList) adminReportList.innerHTML = "";
     if (adminProfileManageList) adminProfileManageList.innerHTML = "";
     if (attendanceSummaryList) attendanceSummaryList.innerHTML = "";
-    
+
     let totalFeesCollected = 0;
     const currentMonthKey = getMonthKey();
     const selectedDayNum = getSelectedDayNum();
-    
+
     currentParsedStudentsForChart = [];
-    let uniqueClasses = new Set();
-    let studentEntries = [];
+    const uniqueClasses = new Set();
+    const studentEntries = [];
 
     if (data) {
         Object.keys(data).forEach(key => {
@@ -364,15 +383,14 @@ function renderDashboard(data) {
         });
     }
 
-    // নিয়মিত উপস্থিতি (বেশি দিন) অনুযায়ী অটোমেটিক সর্টিং — ডেটাবেসের কোনো ডেটা মুছবে না
     studentEntries.sort((a, b) => {
         if (b.daysCount !== a.daysCount) return b.daysCount - a.daysCount;
         return (a.student.name || "").localeCompare(b.student.name || "");
     });
 
-    let mIndex = globalMonthSelect ? globalMonthSelect.selectedIndex + 1 : (new Date().getMonth() + 1);
-    let mIndexPadded = String(mIndex).padStart(2, '0');
-    let yValue = globalYearSelect ? globalYearSelect.value : new Date().getFullYear();
+    const mIndex = globalMonthSelect ? globalMonthSelect.selectedIndex + 1 : (new Date().getMonth() + 1);
+    const mIndexPadded = String(mIndex).padStart(2, '0');
+    const yValue = globalYearSelect ? globalYearSelect.value : new Date().getFullYear();
 
     studentEntries.forEach(entry => {
         try {
@@ -395,7 +413,6 @@ function renderDashboard(data) {
 
             const presentDaysPreview = presentDaysArr.length > 0 ? presentDaysArr.join(', ') : "এখনও কোনো তারিখ নেই";
 
-            // ১৩ তারিখের পর পেমেন্ট হলে লেট হিসেবে চিহ্নিত হবে এবং কারণ লেখার ঘর খুলবে
             let payDay = 0;
             if (feeDate && feeDate.includes('-')) {
                 payDay = parseInt(feeDate.split('-')[2], 10) || 0;
@@ -424,7 +441,6 @@ function renderDashboard(data) {
             const safeName = (student.name || '').toLowerCase();
             const safeInfo = `${student.name || ''} ${student.class || ''}`.toLowerCase();
 
-            // Regularity badge for Student Flip Card (Homework baki removed)
             const attendancePercent = Math.round((daysCount / 26) * 100);
             const isRegular = daysCount >= 12;
             const badgeText = isRegular ? "নিয়মিত (Regular)" : (daysCount > 0 ? "কম উপস্থিতি" : "উপস্থিতি নেই");
@@ -469,7 +485,6 @@ function renderDashboard(data) {
                     </tr>`;
             }
 
-            // Admin Daily Attendance with ✔ Present & ✖ Absent symbols
             const isPresentToday = presentDaysArr.includes(selectedDayNum);
             const isAbsentToday = absentDaysArr.includes(selectedDayNum);
 
@@ -493,7 +508,6 @@ function renderDashboard(data) {
                     </div>`;
             }
 
-            // Admin Fees Table with Rupees (₹) & automatic Late Reason box after 13th
             const lateReasonHtml = isLatePayment
                 ? `<div class="late-reason-box">
                        <span class="late-reason-label">⚠️ ১৩ তারিখের পর (লেট কারণ):</span>
@@ -565,7 +579,6 @@ function renderDashboard(data) {
     const feesDisplay = document.getElementById('admin-total-fees-display');
     if (feesDisplay) feesDisplay.innerText = totalFeesCollected.toLocaleString('en-IN');
 
-    // Top 2 Attendance
     const top2Att = currentParsedStudentsForChart.slice(0, 2);
     const topContainer = document.getElementById('top-attendance-container');
     if (topContainer) {
@@ -574,7 +587,6 @@ function renderDashboard(data) {
             : "কোনো রেকর্ড নেই";
     }
 
-    // Top 2 Marks (Dynamic)
     const top2Marks = [...currentParsedStudentsForChart]
         .filter(s => s.marks > 0)
         .sort((a, b) => b.marks - a.marks)
@@ -586,12 +598,14 @@ function renderDashboard(data) {
             : "<span style='opacity:0.7;'>কোনো নম্বর এন্ট্রি নেই</span>";
     }
 
-    // Re-apply search filters so current view stays intact after update
     searchAttendanceList();
     searchFeeTable();
     searchProfileTable();
 
-    try { populateClassFilter(uniqueClasses); applyChartFilters(); } catch (err) {}
+    try {
+        populateClassFilter(uniqueClasses);
+        applyChartFilters();
+    } catch (err) {}
 }
 
 function populateClassFilter(classesSet) {
@@ -599,7 +613,9 @@ function populateClassFilter(classesSet) {
     if (!classSelect) return;
     const currentVal = classSelect.value;
     classSelect.innerHTML = '<option value="all">সব ক্লাস (All Classes)</option>';
-    classesSet.forEach(cls => { classSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`; });
+    classesSet.forEach(cls => {
+        classSelect.innerHTML += `<option value="${escapeHtml(cls)}">${escapeHtml(cls)}</option>`;
+    });
     classSelect.value = currentVal || 'all';
 }
 
@@ -607,7 +623,7 @@ function applyChartFilters() {
     const classSelect = document.getElementById('chart-class-filter');
     const sortSelect = document.getElementById('chart-sort-filter');
     if (!classSelect || !sortSelect) return;
-    
+
     const classVal = classSelect.value;
     const sortVal = sortSelect.value;
     let filtered = currentParsedStudentsForChart;
@@ -631,7 +647,7 @@ function updateCharts(labels, attendanceData, marksData) {
     if (!attWrapper || !marksWrapper || !attCanvas || !marksCanvas) return;
     let baseWidth = attWrapper.parentElement ? attWrapper.parentElement.clientWidth : window.innerWidth - 60;
     if (baseWidth === 0) baseWidth = window.innerWidth - 60;
-    let calculatedWidthPx = Math.max(baseWidth, labels.length * 60);
+    const calculatedWidthPx = Math.max(baseWidth, labels.length * 60);
     attWrapper.style.width = calculatedWidthPx + 'px';
     marksWrapper.style.width = calculatedWidthPx + 'px';
 
@@ -653,7 +669,6 @@ function updateCharts(labels, attendanceData, marksData) {
     });
 }
 
-// One-click Present (✔) / Absent (✖) without losing any old data
 window.markAttendance = async (studentId, status) => {
     if (!currentUserUID || !allStudentsRawData || !allStudentsRawData[studentId]) return;
     const currentMonthKey = getMonthKey();
@@ -730,22 +745,22 @@ window.sendWhatsAppReceipt = (studentId) => {
 window.triggerEditStudentProfile = async (key) => {
     if (!currentUserUID || !allStudentsRawData || !allStudentsRawData[key]) return;
     const s = allStudentsRawData[key];
-    
+
     const newName = prompt("ছাত্র/ছাত্রীর নাম পরিবর্তন করুন:", s.name || "");
     if (newName === null) return;
-    
+
     const newClass = prompt("ক্লাস পরিবর্তন করুন:", s.class || "");
     if (newClass === null) return;
-    
+
     const newPhone = prompt("মোবাইল নম্বর পরিবর্তন করুন:", s.phone || "");
     if (newPhone === null) return;
-    
+
     const newAddress = prompt("ঠিকানা পরিবর্তন করুন:", s.address || "");
     if (newAddress === null) return;
-    
+
     const newGuardian = prompt("অভিভাবকের (Guardian) নাম পরিবর্তন করুন:", s.guardian || "");
     if (newGuardian === null) return;
-    
+
     const updateObj = {
         name: newName.trim(),
         class: newClass.trim().toUpperCase(),
@@ -753,7 +768,7 @@ window.triggerEditStudentProfile = async (key) => {
         address: newAddress.trim(),
         guardian: newGuardian.trim()
     };
-    
+
     await update(ref(db, `tuition_users/${currentUserUID}/students/${key}`), updateObj);
     alert("প্রোফাইল সম্পূর্ণ আপডেট হয়েছে!");
 };
@@ -767,9 +782,9 @@ if (addStudentBtn) {
         const phoneInput = document.getElementById('stu-phone');
         const addressInput = document.getElementById('stu-address');
         const guardianInput = document.getElementById('stu-guardian');
-        
+
         if (!nameInput.value || !clsInput.value) return alert("নাম ও ক্লাস দিন!");
-        
+
         try {
             await set(push(ref(db, `tuition_users/${currentUserUID}/students`)), {
                 name: nameInput.value.trim(),
@@ -779,7 +794,11 @@ if (addStudentBtn) {
                 guardian: guardianInput.value.trim() || ""
             });
             alert("স্টুডেন্ট যোগ হয়েছে!");
-            nameInput.value = ""; clsInput.value = ""; phoneInput.value = ""; addressInput.value = ""; guardianInput.value = "";
+            nameInput.value = "";
+            clsInput.value = "";
+            phoneInput.value = "";
+            addressInput.value = "";
+            guardianInput.value = "";
         } catch (err) {
             alert("Error: " + err.message);
         }
@@ -787,11 +806,15 @@ if (addStudentBtn) {
 }
 
 window.triggerDeleteStudent = async (key) => {
-    if (confirm("ডিলিট করবেন?")) await remove(ref(db, `tuition_users/${currentUserUID}/students/${key}`));
+    if (confirm("ডিলিট করবেন?")) {
+        await remove(ref(db, `tuition_users/${currentUserUID}/students/${key}`));
+    }
 };
 
 window.deletePdf = async (key) => {
-    if (confirm("PDF ডিলিট করবেন?")) await remove(ref(db, `tuition_users/${currentUserUID}/pdfs/${key}`));
+    if (confirm("PDF ডিলিট করবেন?")) {
+        await remove(ref(db, `tuition_users/${currentUserUID}/pdfs/${key}`));
+    }
 };
 
 window.addEventListener('resize', () => {
