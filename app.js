@@ -10,6 +10,7 @@ import { auth, db } from './firebase-config.js';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { ref, set, push, onValue, remove, update, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+const authLoading = document.getElementById('auth-loading');
 const authSection = document.getElementById('auth-section');
 const mainApp = document.getElementById('main-app');
 
@@ -63,7 +64,7 @@ function syncDatePickerToGlobalMonth() {
 if (globalMonthSelect) {
     globalMonthSelect.addEventListener('change', () => {
         syncDatePickerToGlobalMonth();
-        document.querySelectorAll('.global-month-display').forEach(el => el.innerText = getMonthKey());
+        document.querySelectorAll('.global-month-display').forEach(el => { el.innerText = getMonthKey(); });
         if (allStudentsRawData) renderDashboard(allStudentsRawData);
     });
 }
@@ -72,7 +73,7 @@ if (globalYearSelect) {
     globalYearSelect.addEventListener('input', () => {
         if (String(globalYearSelect.value).length === 4) {
             syncDatePickerToGlobalMonth();
-            document.querySelectorAll('.global-month-display').forEach(el => el.innerText = getMonthKey());
+            document.querySelectorAll('.global-month-display').forEach(el => { el.innerText = getMonthKey(); });
             if (allStudentsRawData) renderDashboard(allStudentsRawData);
         }
     });
@@ -87,7 +88,7 @@ if (attDateInput) {
             const mIdx = parseInt(parts[1], 10) - 1;
             if (globalYearSelect) globalYearSelect.value = yr;
             if (globalMonthSelect && monthNames[mIdx]) globalMonthSelect.value = monthNames[mIdx];
-            document.querySelectorAll('.global-month-display').forEach(el => el.innerText = getMonthKey());
+            document.querySelectorAll('.global-month-display').forEach(el => { el.innerText = getMonthKey(); });
         }
         if (allStudentsRawData) renderDashboard(allStudentsRawData);
     });
@@ -101,12 +102,12 @@ function escapeHtml(str) {
 
 function parseDateList(rawStr) {
     if (!rawStr || typeof rawStr !== 'string') return [];
-    const set = new Set();
+    const dateSet = new Set();
     rawStr.split(',').forEach(item => {
         const num = parseInt(item.trim(), 10);
-        if (!isNaN(num) && num >= 1 && num <= 31) set.add(num);
+        if (!isNaN(num) && num >= 1 && num <= 31) dateSet.add(num);
     });
-    return Array.from(set).sort((a, b) => a - b);
+    return Array.from(dateSet).sort((a, b) => a - b);
 }
 
 function formatDateList(numArr) {
@@ -155,11 +156,13 @@ window.switchTab = function(tabId, navElement) {
 };
 
 onAuthStateChanged(auth, (user) => {
+    if (authLoading) authLoading.style.display = 'none';
+
     if (user) {
         currentUserUID = user.uid;
         if (authSection) authSection.style.display = 'none';
         if (mainApp) mainApp.style.display = 'block';
-        document.querySelectorAll('.global-month-display').forEach(el => el.innerText = getMonthKey());
+        document.querySelectorAll('.global-month-display').forEach(el => { el.innerText = getMonthKey(); });
         initAppDataListeners(currentUserUID);
 
         if (!viewsIncremented) {
@@ -180,24 +183,57 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+const loginForm = document.getElementById('login-form');
+const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
-if (signupBtn) {
-    signupBtn.addEventListener('click', async () => {
+const authErrorEl = document.getElementById('auth-error');
+
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         const email = document.getElementById('user-email').value.trim();
         const pass = document.getElementById('user-pass').value;
-        if (email && pass) {
-            await createUserWithEmailAndPassword(auth, email, pass).catch(e => alert(e.message));
+        if (!email || !pass) return;
+
+        if (authErrorEl) authErrorEl.innerText = "";
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerText = "লগইন হচ্ছে...";
+        }
+
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+            if (authErrorEl) authErrorEl.innerText = "ভুল ইমেইল বা পাসওয়ার্ড!";
+        } finally {
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerText = "লগইন করুন";
+            }
         }
     });
 }
 
-const loginBtn = document.getElementById('login-btn');
-if (loginBtn) {
-    loginBtn.addEventListener('click', async () => {
+if (signupBtn) {
+    signupBtn.addEventListener('click', async () => {
         const email = document.getElementById('user-email').value.trim();
         const pass = document.getElementById('user-pass').value;
-        if (email && pass) {
-            await signInWithEmailAndPassword(auth, email, pass).catch(() => alert("ভুল ইমেইল বা পাসওয়ার্ড!"));
+        if (!email || !pass) {
+            if (authErrorEl) authErrorEl.innerText = "ইমেইল এবং পাসওয়ার্ড দিন!";
+            return;
+        }
+
+        if (authErrorEl) authErrorEl.innerText = "";
+        signupBtn.disabled = true;
+        signupBtn.innerText = "অ্যাকাউন্ট তৈরি হচ্ছে...";
+
+        try {
+            await createUserWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+            if (authErrorEl) authErrorEl.innerText = err.message;
+        } finally {
+            signupBtn.disabled = false;
+            signupBtn.innerText = "নতুন অ্যাকাউন্ট";
         }
     });
 }
@@ -411,7 +447,8 @@ function renderDashboard(data) {
                 ? presentDaysArr.map(dNum => `${String(dNum).padStart(2, '0')}-${mIndexPadded}-${yValue}`).join('<br>')
                 : "কোনো ডেটা নেই";
 
-            const presentDaysPreview = presentDaysArr.length > 0 ? presentDaysArr.join(', ') : "এখনও কোনো তারিখ নেই";
+            const presentDaysFormatted = presentDaysArr.join(', ');
+            const presentDaysPreview = presentDaysArr.length > 0 ? presentDaysFormatted : "এখনও কোনো তারিখ নেই";
 
             let payDay = 0;
             if (feeDate && feeDate.includes('-')) {
@@ -491,19 +528,27 @@ function renderDashboard(data) {
             if (adminAttendanceList) {
                 adminAttendanceList.innerHTML += `
                     <div class="att-row" data-stuinfo="${escapeHtml(safeInfo)}">
-                        <div style="flex: 1; min-width: 160px;">
-                            <strong style="color: #1e293b; font-size: 0.98rem;">${escapeHtml(student.name)}</strong>
-                            <span style="color: #3b82f6; font-size: 0.8rem; font-weight: bold; margin-left: 6px;">(${escapeHtml(student.class)})</span>
-                            <div style="color: #10b981; font-weight: bold; font-size: 0.82rem; margin-top: 3px;">
-                                মোট উপস্থিতি: ${daysCount} দিন
+                        <div class="att-row-main">
+                            <div style="flex: 1; min-width: 150px;">
+                                <strong style="color: #1e293b; font-size: 0.98rem;">${escapeHtml(student.name)}</strong>
+                                <span style="color: #3b82f6; font-size: 0.8rem; font-weight: bold; margin-left: 6px;">(${escapeHtml(student.class)})</span>
+                                <div style="color: #10b981; font-weight: bold; font-size: 0.82rem; margin-top: 3px;">
+                                    মোট উপস্থিতি: ${daysCount} দিন
+                                </div>
+                                <div style="color: #64748b; font-size: 0.75rem; margin-top: 2px;">
+                                    📅 তারিখ: ${presentDaysPreview}
+                                </div>
                             </div>
-                            <div style="color: #64748b; font-size: 0.75rem; margin-top: 2px;">
-                                📅 তারিখ: ${presentDaysPreview}
+                            <div class="att-btn-group">
+                                <button type="button" class="att-btn ${isPresentToday ? 'present-active' : ''}" title="Present (উপস্থিত)" onclick="markAttendance('${key}', 'present')">✔</button>
+                                <button type="button" class="att-btn ${isAbsentToday ? 'absent-active' : ''}" title="Absent (অনুপস্থিত)" onclick="markAttendance('${key}', 'absent')">✖</button>
+                                <button type="button" class="att-btn edit-btn" id="edit-btn-${key}" title="ম্যানুয়াল তারিখ লিখুন" onclick="toggleManualEdit('${key}')">✏️</button>
                             </div>
                         </div>
-                        <div class="att-btn-group">
-                            <button type="button" class="att-btn ${isPresentToday ? 'present-active' : ''}" title="Present (উপস্থিত)" onclick="markAttendance('${key}', 'present')">✔</button>
-                            <button type="button" class="att-btn ${isAbsentToday ? 'absent-active' : ''}" title="Absent (অনুপস্থিত)" onclick="markAttendance('${key}', 'absent')">✖</button>
+                        <div class="manual-edit-box" id="manual-box-${key}">
+                            <input type="text" id="manual-input-${key}" value="${escapeHtml(presentDaysFormatted)}" placeholder="তারিখ লিখুন (যেমন: 1, 2, 5, 12)">
+                            <button type="button" class="btn-manual-save" onclick="saveManualAttendance('${key}')">সেভ</button>
+                            <button type="button" class="btn-manual-cancel" onclick="toggleManualEdit('${key}')">বাতিল</button>
                         </div>
                     </div>`;
             }
@@ -604,7 +649,10 @@ function renderDashboard(data) {
 
     try {
         populateClassFilter(uniqueClasses);
-        applyChartFilters();
+        const homeTab = document.getElementById('tab-home');
+        if (homeTab && homeTab.classList.contains('active')) {
+            applyChartFilters();
+        }
     } catch (err) {}
 }
 
@@ -620,6 +668,7 @@ function populateClassFilter(classesSet) {
 }
 
 function applyChartFilters() {
+    if (typeof window.Chart === 'undefined') return;
     const classSelect = document.getElementById('chart-class-filter');
     const sortSelect = document.getElementById('chart-sort-filter');
     if (!classSelect || !sortSelect) return;
@@ -657,12 +706,12 @@ function updateCharts(labels, attendanceData, marksData) {
     if (attendanceChartInstance) attendanceChartInstance.destroy();
     if (marksChartInstance) marksChartInstance.destroy();
 
-    attendanceChartInstance = new Chart(attCtx, {
+    attendanceChartInstance = new window.Chart(attCtx, {
         type: 'bar',
         data: { labels: labels, datasets: [{ label: 'উপস্থিতি (২৬ দিনের মধ্যে)', data: attendanceData, backgroundColor: '#10b981', borderRadius: 5 }] },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 26, ticks: { stepSize: 2 } } } }
     });
-    marksChartInstance = new Chart(marksCtx, {
+    marksChartInstance = new window.Chart(marksCtx, {
         type: 'bar',
         data: { labels: labels, datasets: [{ label: 'পরীক্ষার নম্বর (১০০ এর মধ্যে)', data: marksData, backgroundColor: '#3b82f6', borderRadius: 5 }] },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100, ticks: { stepSize: 10 } } } }
@@ -691,6 +740,39 @@ window.markAttendance = async (studentId, status) => {
     const updateObj = {};
     updateObj[`months/${currentMonthKey}/backlogDates`] = formatDateList(presentArr);
     updateObj[`months/${currentMonthKey}/absentDates`] = formatDateList(absentArr);
+
+    await update(ref(db, `tuition_users/${currentUserUID}/students/${studentId}`), updateObj);
+};
+
+window.toggleManualEdit = (studentId) => {
+    const box = document.getElementById(`manual-box-${studentId}`);
+    const btn = document.getElementById(`edit-btn-${studentId}`);
+    const input = document.getElementById(`manual-input-${studentId}`);
+    if (!box) return;
+
+    const isOpen = box.classList.toggle('open');
+    if (btn) btn.classList.toggle('active', isOpen);
+    if (isOpen && input) {
+        input.focus();
+    }
+};
+
+window.saveManualAttendance = async (studentId) => {
+    if (!currentUserUID || !allStudentsRawData || !allStudentsRawData[studentId]) return;
+    const input = document.getElementById(`manual-input-${studentId}`);
+    if (!input) return;
+
+    const currentMonthKey = getMonthKey();
+    const student = allStudentsRawData[studentId];
+    const monthData = student.months && student.months[currentMonthKey] ? student.months[currentMonthKey] : {};
+
+    const cleanPresentArr = parseDateList(input.value);
+    const oldAbsentArr = parseDateList(monthData.absentDates || "");
+    const cleanAbsentArr = oldAbsentArr.filter(d => !cleanPresentArr.includes(d));
+
+    const updateObj = {};
+    updateObj[`months/${currentMonthKey}/backlogDates`] = formatDateList(cleanPresentArr);
+    updateObj[`months/${currentMonthKey}/absentDates`] = formatDateList(cleanAbsentArr);
 
     await update(ref(db, `tuition_users/${currentUserUID}/students/${studentId}`), updateObj);
 };
