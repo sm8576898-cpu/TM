@@ -5,22 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Tuition Manager</title>
 
+    <!-- Fast Firebase & CDN Connections -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://tution-ce289-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#10efbb">
     <link rel="apple-touch-icon" href="icon.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #111526; color: #f0f0f0; padding-bottom: 80px; }
         * { box-sizing: border-box; }
 
-        #auth-section { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
+        /* Smooth Auth Loading Screen */
+        #auth-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 14px; color: #cbd5e1; font-weight: 600; }
+        .loader-spinner { width: 42px; height: 42px; border: 4px solid #2e304e; border-top-color: #10efbb; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #auth-section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
         .login-card { background: #1a1b2f; padding: 30px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #2e304e; }
         .login-card h2 { text-align: center; color: #fff; margin-top: 0; font-size: 1.4rem; }
         .login-card input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #2e304e; outline: none; background: #0b0c16; color: white; font-size: 16px; }
-        .login-card button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; color: white; }
+        .login-card input:focus { border-color: #10efbb; }
+        .login-card button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; color: white; transition: opacity 0.2s; }
+        .login-card button:disabled { opacity: 0.65; cursor: not-allowed; }
 
         .pass-wrapper { position: relative; width: 100%; }
         .pass-wrapper input { padding-right: 45px; }
@@ -58,15 +71,25 @@
         .custom-tooltip::after { content: ""; position: absolute; bottom: 100%; left: 50%; margin-left: -8px; border-width: 8px; border-style: solid; border-color: transparent transparent #06b6d4 transparent; }
         .custom-tooltip-container:hover .custom-tooltip { visibility: visible; opacity: 1; }
 
+        /* Attendance Symbol Buttons + Manual Edit Box */
         .att-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
         .att-controls input[type="date"] { width: auto; flex: 1; min-width: 150px; margin: 0; font-weight: bold; color: #0f172a; background: #fff; }
         .att-controls input[type="text"] { width: auto; flex: 2; min-width: 180px; margin: 0; background: #fff; }
-        .att-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 10px; flex-wrap: wrap; }
-        .att-btn-group { display: flex; gap: 10px; align-items: center; }
-        .att-btn { width: 44px; height: 44px; border-radius: 8px; border: 2px solid #cbd5e1; background: #f8fafc; color: #64748b; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .att-row { display: flex; flex-direction: column; padding: 12px 0; border-bottom: 1px solid #e2e8f0; gap: 8px; }
+        .att-row-main { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+        .att-btn-group { display: flex; gap: 8px; align-items: center; }
+        .att-btn { width: 42px; height: 42px; border-radius: 8px; border: 2px solid #cbd5e1; background: #f8fafc; color: #64748b; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .att-btn.present-active { background: #10b981; border-color: #059669; color: #ffffff; box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35); }
         .att-btn.absent-active { background: #ef4444; border-color: #dc2626; color: #ffffff; box-shadow: 0 3px 8px rgba(239, 68, 68, 0.35); }
+        .att-btn.edit-btn { background: #eff6ff; border-color: #93c5fd; color: #2563eb; font-size: 1rem; }
+        .att-btn.edit-btn.active { background: #2563eb; border-color: #1d4ed8; color: #ffffff; }
         .att-btn:hover { transform: scale(1.05); }
+
+        .manual-edit-box { display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; gap: 8px; align-items: center; flex-wrap: wrap; width: 100%; }
+        .manual-edit-box.open { display: flex; }
+        .manual-edit-box input[type="text"] { flex: 1; min-width: 180px; margin: 0; padding: 8px 10px; background: #ffffff; border: 1px solid #94a3b8; border-radius: 5px; font-size: 0.9rem; }
+        .btn-manual-save { background: #3b82f6; color: #ffffff; border: none; padding: 8px 14px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+        .btn-manual-cancel { background: #e2e8f0; color: #334155; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
 
         .fees-table-container { overflow-x: auto; background: #fff; border-radius: 8px; width: 100%; -webkit-overflow-scrolling: touch; display: block; }
         .fees-table { width: 100%; border-collapse: collapse; min-width: 720px; text-align: center; font-size: 0.85rem; color: #333; }
@@ -125,16 +148,24 @@
         <option value="350"></option>
     </datalist>
 
+    <!-- Initial Loading Screen -->
+    <div id="auth-loading">
+        <div class="loader-spinner"></div>
+        <span>লোড হচ্ছে...</span>
+    </div>
+
     <div id="auth-section">
         <div class="login-card">
             <h2>জ্ঞানকুঠির - Login</h2>
-            <input type="email" id="user-email" placeholder="Email Address">
-            <div class="pass-wrapper">
-                <input type="password" id="user-pass" placeholder="Password">
-                <span class="pass-eye" id="toggle-pass-eye">👁️</span>
-            </div>
-            <button id="login-btn" style="background: #3b82f6;">লগইন করুন</button>
-            <button id="signup-btn" style="background: #10b981;">নতুন অ্যাকাউন্ট</button>
+            <form id="login-form">
+                <input type="email" id="user-email" placeholder="Email Address" autocomplete="username" required>
+                <div class="pass-wrapper">
+                    <input type="password" id="user-pass" placeholder="Password" autocomplete="current-password" required>
+                    <span class="pass-eye" id="toggle-pass-eye">👁️</span>
+                </div>
+                <button type="submit" id="login-btn" style="background: #3b82f6;">লগইন করুন</button>
+                <button type="button" id="signup-btn" style="background: #10b981;">নতুন অ্যাকাউন্ট</button>
+            </form>
             <p id="auth-error" style="color: #ff6b6b; text-align: center; margin-top: 15px;"></p>
         </div>
     </div>
@@ -233,13 +264,13 @@
             </div>
 
             <div class="white-card">
-                <h3><i class="fas fa-calendar-check"></i> দৈনিক হাজিরা (Present ✔ / Absent ✖)</h3>
+                <h3><i class="fas fa-calendar-check"></i> দৈনিক হাজিরা (Present ✔ / Absent ✖ / Manual ✏️)</h3>
                 <div class="att-controls">
                     <input type="date" id="att-selected-date" title="তারিখ নির্বাচন করুন">
                     <input type="text" id="search-attendance" placeholder="🔍 নাম বা ক্লাস দিয়ে খুঁজুন..." onkeyup="searchAttendanceList()">
                 </div>
                 <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 10px;">
-                    💡 তারিখ সিলেক্ট করে পাশে <strong>✔</strong> (উপস্থিত) বা <strong>✖</strong> (অনুপস্থিত) চাপুন—অটোমেটিক সেভ হবে।
+                    💡 <strong>✔</strong> (উপস্থিত) বা <strong>✖</strong> (অনুপস্থিত) চাপুন—অটোমেটিক সেভ হবে। বাদ পড়া কোনো দিনের তারিখ ম্যানুয়ালি বসাতে পাশে <strong>✏️</strong> চাপুন।
                 </div>
                 <div id="admin-attendance-list"></div>
             </div>
@@ -322,6 +353,6 @@
         </div>
     </div>
 
-    <script type="module" src="app.js?v=2026_v4"></script>
+    <script type="module" src="app.js?v=2026_v5"></script>
 </body>
 </html>
